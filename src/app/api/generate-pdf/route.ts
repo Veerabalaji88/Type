@@ -141,7 +141,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
         // Helper to measure text width
         const textWidth = (text: string): number => {
-          return doc.widthOfString(text, { font: 'Helvetica', size: 10 });
+          return doc.widthOfString(text);
         };
 
         doc.fillColor('#000000');
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest): Promise<Response> {
             // Red color for wrong words
             doc.fillColor('#dc3232');
             doc.font('Helvetica-Bold');
-            doc.text(typedWords[index], startX, startY, { lineGap: 0 });
+            doc.text(typedWords[index], startX, startY);
             // Add underline to wrong word
             const underlineY = startY + 12;
             doc.strokeColor('#dc3232').lineWidth(0.5);
@@ -182,14 +182,14 @@ export async function POST(request: NextRequest): Promise<Response> {
             // Gray italic for skipped words
             doc.fillColor('#999999');
             doc.font('Helvetica-Oblique');
-            doc.text(word, startX, startY, { lineGap: 0 });
+            doc.text(word, startX, startY);
             doc.font('Helvetica');
             doc.fillColor('#000000');
           } else {
             // Normal black for correct words
             doc.fillColor('#000000');
             doc.font('Helvetica');
-            doc.text(word, startX, startY, { lineGap: 0 });
+            doc.text(word, startX, startY);
           }
 
           startX += wordTextWidth + marginX + 4;
