@@ -101,7 +101,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         doc.fontSize(10).font('Helvetica');
         
         // Display text with automatic wrapping
-        doc.text(passageText, 20, {
+        doc.text(passageText, {
           width: doc.page.width - 40,
           align: 'left',
         });
