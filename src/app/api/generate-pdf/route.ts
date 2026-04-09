@@ -22,105 +22,121 @@ export async function POST(request: NextRequest): Promise<Response> {
       timestamp,
     } = body;
 
-    // Create a PDF document
-    const doc = new PDFDocument({
-      size: 'A4',
-      margin: 20,
-    });
+    return new Promise((resolve, reject) => {
+      try {
+        // Create a PDF document
+        const doc = new PDFDocument({
+          size: 'A4',
+          margin: 20,
+        });
 
-    // Set up response headers for file download
-    const chunks: Buffer[] = [];
-    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+        // Set up response headers for file download
+        const chunks: Buffer[] = [];
+        
+        doc.on('data', (chunk: Buffer) => {
+          chunks.push(chunk);
+        });
 
-    // Title
-    doc.fontSize(22).font('Helvetica-Bold').text('CENTRAL SCHOOL OF COMMERCE', { align: 'center' });
-    doc.moveDown(0.2);
-    doc.fontSize(14).font('Helvetica').text('Official Typing Examination Statement of Marks', { align: 'center' });
-    doc.moveDown(0.5);
-    doc.moveTo(20, doc.y).lineTo(doc.page.width - 20, doc.y).stroke();
-    doc.moveDown(0.5);
+        doc.on('error', (err: any) => {
+          console.error('PDF Document Error:', err);
+          reject(new Error(`PDF generation error: ${err.message}`));
+        });
 
-    // Student & Exam Info
-    doc.fontSize(12).font('Helvetica');
-    doc.text(`Student Name: ${studentName}`, 20);
-    doc.text(`Student ID: ${studentEmail}`, 20);
-    doc.text(`Language: ${language.toUpperCase()}`, 20);
-    doc.text(`Exam Level: ${level.toUpperCase()}`, 20);
-    doc.text(`Date & Time: ${timestamp}`, 20);
-    doc.moveDown(0.5);
+        // Title
+        doc.fontSize(22).font('Helvetica-Bold').text('CENTRAL SCHOOL OF COMMERCE', { align: 'center' });
+        doc.moveDown(0.2);
+        doc.fontSize(14).font('Helvetica').text('Official Typing Examination Statement of Marks', { align: 'center' });
+        doc.moveDown(0.5);
+        doc.moveTo(20, doc.y).lineTo(doc.page.width - 20, doc.y).stroke();
+        doc.moveDown(0.5);
 
-    // Table Metrics
-    doc.fontSize(11).font('Helvetica-Bold');
-    doc.rect(20, doc.y, doc.page.width - 40, 15).fillAndStroke('#f5f5f5', '#000');
-    doc.fill('#000');
-    const metricsY = doc.y + 5;
-    doc.text('Examination Parameter', 25, metricsY);
-    doc.text('Obtained Metric', doc.page.width - 65, metricsY, { width: 60, align: 'right' });
-    
-    doc.moveDown(0.8);
-    doc.fontSize(11).font('Helvetica');
-    
-    const metricsData = [
-      ['Gross Speed', `${wpm} WPM`],
-      ['Total Strokes Keyed', `${strokes}`],
-      ['Word Mistakes Committed', `${mistakes}`],
-      ['Grade Accuracy Ratio', `${accuracy}%`],
-    ];
+        // Student & Exam Info
+        doc.fontSize(12).font('Helvetica');
+        doc.text(`Student Name: ${studentName}`, 20);
+        doc.text(`Student ID: ${studentEmail}`, 20);
+        doc.text(`Language: ${language.toUpperCase()}`, 20);
+        doc.text(`Exam Level: ${level.toUpperCase()}`, 20);
+        doc.text(`Date & Time: ${timestamp}`, 20);
+        doc.moveDown(0.5);
 
-    metricsData.forEach(([label, value]) => {
-      doc.text(label, 25);
-      doc.text(value, doc.page.width - 65, doc.y - 15, { width: 60, align: 'right' });
-      doc.moveDown(0.4);
-      doc.moveTo(20, doc.y).lineTo(doc.page.width - 20, doc.y).stroke();
-      doc.moveDown(0.3);
-    });
+        // Table Metrics
+        doc.fontSize(11).font('Helvetica-Bold');
+        doc.rect(20, doc.y, doc.page.width - 40, 15).fillAndStroke('#f5f5f5', '#000');
+        doc.fill('#000');
+        const metricsY = doc.y + 5;
+        doc.text('Examination Parameter', 25, metricsY);
+        doc.text('Obtained Metric', doc.page.width - 65, metricsY, { width: 60, align: 'right' });
+        
+        doc.moveDown(0.8);
+        doc.fontSize(11).font('Helvetica');
+        
+        const metricsData = [
+          ['Gross Speed', `${wpm} WPM`],
+          ['Total Strokes Keyed', `${strokes}`],
+          ['Word Mistakes Committed', `${mistakes}`],
+          ['Grade Accuracy Ratio', `${accuracy}%`],
+        ];
 
-    // Final Marks
-    doc.fontSize(12).font('Helvetica-Bold');
-    doc.rect(20, doc.y, doc.page.width - 40, 15).fillAndStroke('#f5f5f5', '#000');
-    doc.fill('#000');
-    const marksY = doc.y + 5;
-    doc.text('NET AGGREGATE MARKS', 25, marksY);
-    doc.text(`${marks} / 100`, doc.page.width - 65, marksY, { width: 60, align: 'right' });
-    
-    doc.moveDown(1.2);
-    doc.fontSize(11).font('Helvetica');
-    
-    // Passage Analysis
-    doc.fontSize(12).font('Helvetica-Bold').text('Original Passage (Tamil)', 20);
-    doc.fontSize(10).font('Helvetica');
-    
-    // Display Tamil text with automatic wrapping
-    doc.text(passageText, {
-      width: doc.page.width - 50,
-      align: 'left',
-    });
-    
-    doc.moveDown(0.5);
-    doc.fontSize(11).font('Helvetica-Bold').text('Verdict', 20);
-    doc.fontSize(11).font('Helvetica-Bold');
-    const verdict = passed ? 'EXAMINATION PASSED ✓' : 'EXAMINATION UNSUCCESSFUL ✗';
-    const verdictColor = passed ? '#10b981' : '#ef4444';
-    doc.fillColor(verdictColor).text(verdict, 20);
-    
-    // End document and collect data
-    return new Promise((resolve) => {
-      doc.on('finish', () => {
-        const pdfBuffer = Buffer.concat(chunks);
-        resolve(
-          new NextResponse(pdfBuffer, {
-            headers: {
-              'Content-Type': 'application/pdf',
-              'Content-Disposition': `attachment; filename="CSCTypingTest-${language}-${level}.pdf"`,
-            },
-          })
-        );
-      });
-      
-      doc.end();
+        metricsData.forEach(([label, value]) => {
+          doc.text(label, 25);
+          doc.text(value, doc.page.width - 65, doc.y - 15, { width: 60, align: 'right' });
+          doc.moveDown(0.4);
+          doc.moveTo(20, doc.y).lineTo(doc.page.width - 20, doc.y).stroke();
+          doc.moveDown(0.3);
+        });
+
+        // Final Marks
+        doc.fontSize(12).font('Helvetica-Bold');
+        doc.rect(20, doc.y, doc.page.width - 40, 15).fillAndStroke('#f5f5f5', '#000');
+        doc.fill('#000');
+        const marksY = doc.y + 5;
+        doc.text('NET AGGREGATE MARKS', 25, marksY);
+        doc.text(`${marks} / 100`, doc.page.width - 65, marksY, { width: 60, align: 'right' });
+        
+        doc.moveDown(1.2);
+        doc.fontSize(11).font('Helvetica');
+        
+        // Passage Analysis
+        doc.fontSize(12).font('Helvetica-Bold').text('Original Passage', 20);
+        doc.fontSize(10).font('Helvetica');
+        
+        // Display text with automatic wrapping
+        doc.text(passageText, 20, {
+          width: doc.page.width - 40,
+          align: 'left',
+        });
+        
+        doc.moveDown(0.5);
+        doc.fontSize(11).font('Helvetica-Bold').text('Verdict', 20);
+        doc.fontSize(11).font('Helvetica-Bold');
+        const verdict = passed ? 'EXAMINATION PASSED ✓' : 'EXAMINATION UNSUCCESSFUL ✗';
+        const verdictColor = passed ? '#10b981' : '#ef4444';
+        doc.fillColor(verdictColor).text(verdict, 20);
+        
+        // Finish document
+        doc.on('finish', () => {
+          const pdfBuffer = Buffer.concat(chunks);
+          resolve(
+            new NextResponse(pdfBuffer, {
+              headers: {
+                'Content-Type': 'application/pdf',
+                'Content-Disposition': `attachment; filename="CSCTypingTest-${language}-${level}.pdf"`,
+              },
+            })
+          );
+        });
+        
+        doc.end();
+      } catch (innerError: any) {
+        console.error('PDF Generation Inner Error:', innerError);
+        reject(new Error(`PDF generation failed: ${innerError.message}`));
+      }
+    }).catch((error) => {
+      console.error('PDF Promise Error:', error);
+      return NextResponse.json({ error: error.message || 'Failed to generate PDF' }, { status: 500 });
     });
   } catch (error: any) {
     console.error('PDF Generation Error:', error);
-    return NextResponse.json({ error: 'Failed to generate PDF' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to generate PDF' }, { status: 500 });
   }
 }
