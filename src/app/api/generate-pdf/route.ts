@@ -22,7 +22,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       timestamp,
     } = body;
 
-    return new Promise((resolve, reject) => {
+    return new Promise<Response>((resolve, reject) => {
       try {
         // Create a PDF document
         const doc = new PDFDocument({
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       }
     }).catch((error) => {
       console.error('PDF Promise Error:', error);
-      return NextResponse.json({ error: error.message || 'Failed to generate PDF' }, { status: 500 });
+      return NextResponse.json({ error: error.message || 'Failed to generate PDF' }, { status: 500 }) as any;
     });
   } catch (error: any) {
     console.error('PDF Generation Error:', error);
