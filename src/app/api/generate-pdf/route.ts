@@ -99,14 +99,14 @@ export async function POST(request: NextRequest): Promise<Response> {
         doc.moveDown(0.8);
         doc.fontSize(11).font('Helvetica');
         
-        const metricsData = [
+        const metricsData: [string, string][] = [
           ['Gross Speed', `${wpm} WPM`],
           ['Total Strokes Keyed', `${strokes}`],
           ['Word Mistakes Committed', `${mistakes}`],
           ['Grade Accuracy Ratio', `${accuracy}%`],
         ];
 
-        metricsData.forEach(([label, value]: [string, string]) => {
+        metricsData.forEach(([label, value]) => {
           doc.text(label, 25);
           doc.text(value as string, doc.page.width - 65, doc.y - 15, { width: 60, align: 'right' });
           doc.moveDown(0.4);
