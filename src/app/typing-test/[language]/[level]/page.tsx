@@ -621,37 +621,64 @@ export default function TypingTest() {
               ref={passageContainerRef}
               className="bg-zinc-50 dark:bg-black/30 border border-zinc-200 dark:border-white/5 p-6 rounded-xl h-72 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-white/10 transition-colors duration-300"
             >
-              <div className={`text-zinc-600 dark:text-slate-300 text-lg leading-relaxed ${language === 'tamil' ? '' : 'font-mono'} flex flex-wrap gap-x-2 gap-y-1`} style={language === 'tamil' ? { fontFamily: "'Tamil99 Unicode', 'Tamil OldTypewriter Unicode', 'Noto Sans Tamil', system-ui, monospace" } : {}}>
-                {targetWordsArray.map((word, i) => {
-                  let wordClass = "text-zinc-500 dark:text-slate-400";
-                  const isCurrent = i === (userInput.endsWith(' ') ? typedWordsArray.length : typedWordsArray.length - 1);
+              {language === 'tamil' ? (
+                <div className="text-zinc-600 dark:text-slate-300 text-lg leading-relaxed" style={{ fontFamily: "'Tamil99 Unicode', 'Tamil OldTypewriter Unicode', 'Noto Sans Tamil', system-ui" }}>
+                  {targetWordsArray.map((word, i) => {
+                    const isCurrent = i === (userInput.endsWith(' ') ? typedWordsArray.length : typedWordsArray.length - 1);
+                    let wordClass = "text-zinc-500 dark:text-slate-400";
 
-                  if (!highlightEnabled) {
-                    // When highlight is disabled, show all words in neutral color
-                    wordClass = "text-zinc-600 dark:text-slate-300";
-                  } else if (i < (userInput.endsWith(' ') ? typedWordsArray.length : typedWordsArray.length - 1)) {
-                    wordClass = typedWordsArray[i] === word
-                      ? "text-emerald-600 dark:text-emerald-400 font-bold"
-                      : "text-red-500 dark:text-red-400 font-bold underline decoration-wavy";
-                  } else if (isCurrent) {
-                    const isMismatch = activeWordValue !== word.slice(0, activeWordValue.length);
+                    if (!highlightEnabled) {
+                      wordClass = "text-zinc-600 dark:text-slate-300";
+                    } else if (i < (userInput.endsWith(' ') ? typedWordsArray.length : typedWordsArray.length - 1)) {
+                      wordClass = typedWordsArray[i] === word
+                        ? "text-emerald-600 dark:text-emerald-400 font-bold"
+                        : "text-red-500 dark:text-red-400 font-bold underline decoration-wavy";
+                    } else if (isCurrent) {
+                      const isMismatch = activeWordValue !== word.slice(0, activeWordValue.length);
+                      wordClass = isMismatch
+                        ? "bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 font-bold animate-pulse ring-2 ring-red-500/50"
+                        : "bg-indigo-100 dark:bg-indigo-500/30 text-indigo-900 dark:text-white font-bold animate-pulse ring-2 ring-indigo-400 dark:ring-indigo-500/50";
+                    }
 
-                    wordClass = isMismatch
-                      ? "bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 font-bold animate-pulse ring-2 ring-red-500/50"
-                      : "bg-indigo-100 dark:bg-indigo-500/30 text-indigo-900 dark:text-white font-bold animate-pulse ring-2 ring-indigo-400 dark:ring-indigo-500/50";
-                  }
+                    return (
+                      <span key={i} ref={isCurrent ? activeWordRef : null} className={`${wordClass} px-0.5 py-0.5 rounded-md transition-all duration-200`}>
+                        {word}{i < targetWordsArray.length - 1 ? ' ' : ''}
+                      </span>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-zinc-600 dark:text-slate-300 text-lg leading-relaxed font-mono flex flex-wrap gap-x-2 gap-y-1">
+                  {targetWordsArray.map((word, i) => {
+                    let wordClass = "text-zinc-500 dark:text-slate-400";
+                    const isCurrent = i === (userInput.endsWith(' ') ? typedWordsArray.length : typedWordsArray.length - 1);
 
-                  return (
-                    <span
-                      key={i}
-                      ref={isCurrent ? activeWordRef : null}
-                      className={`${wordClass} px-1.5 py-0.5 rounded-md transition-all duration-200`}
-                    >
-                      {word}
-                    </span>
-                  );
-                })}
-              </div>
+                    if (!highlightEnabled) {
+                      wordClass = "text-zinc-600 dark:text-slate-300";
+                    } else if (i < (userInput.endsWith(' ') ? typedWordsArray.length : typedWordsArray.length - 1)) {
+                      wordClass = typedWordsArray[i] === word
+                        ? "text-emerald-600 dark:text-emerald-400 font-bold"
+                        : "text-red-500 dark:text-red-400 font-bold underline decoration-wavy";
+                    } else if (isCurrent) {
+                      const isMismatch = activeWordValue !== word.slice(0, activeWordValue.length);
+
+                      wordClass = isMismatch
+                        ? "bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400 font-bold animate-pulse ring-2 ring-red-500/50"
+                        : "bg-indigo-100 dark:bg-indigo-500/30 text-indigo-900 dark:text-white font-bold animate-pulse ring-2 ring-indigo-400 dark:ring-indigo-500/50";
+                    }
+
+                    return (
+                      <span
+                        key={i}
+                        ref={isCurrent ? activeWordRef : null}
+                        className={`${wordClass} px-1.5 py-0.5 rounded-md transition-all duration-200`}
+                      >
+                        {word}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
