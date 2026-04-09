@@ -274,7 +274,7 @@ function AdminPanelContent() {
           <div className="mb-12 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div>
               <span className="text-xs font-semibold tracking-wider text-indigo-400 uppercase mb-1 block">
-                Lakshmi Technical Institute
+                Central School of Commerce
               </span>
               <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-300">
                 Administrative Dashboard
