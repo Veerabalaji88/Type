@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import PDFDocument from 'pdfkit';
-import { Writable } from 'stream';
 
 export async function POST(request: NextRequest): Promise<Response> {
   try {
@@ -21,20 +20,11 @@ export async function POST(request: NextRequest): Promise<Response> {
       timestamp,
     } = body;
 
-    // Create PDF in a stream-based approach
-    const stream = new Writable({
-      write(chunk: Buffer, encoding, callback) {
-        callback();
-      }
-    });
-
     const buffers: Buffer[] = [];
 
     return new Promise<Response>((resolve, reject) => {
-      // Create a PDF document
       const doc = new PDFDocument({
         size: 'A4',
-        margin: 20,
       });
 
       // Collect data chunks
@@ -42,178 +32,146 @@ export async function POST(request: NextRequest): Promise<Response> {
         buffers.push(chunk);
       });
 
+      const pageWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const bottomMargin = 20;
+
       // Handle errors
       doc.on('error', (err: any) => {
-        console.error('PDF Document Error:', err);
         reject(err);
       });
 
-      // Handle finish event (when all data has been written)
       doc.on('end', () => {
-        try {
-          const pdfBuffer = Buffer.concat(buffers);
-          const response = new NextResponse(pdfBuffer, {
+        const pdfBuffer = Buffer.concat(buffers);
+        resolve(
+          new NextResponse(pdfBuffer, {
             status: 200,
             headers: {
               'Content-Type': 'application/pdf',
               'Content-Disposition': `attachment; filename="CSCTypingTest-${language}-${level}.pdf"`,
               'Content-Length': pdfBuffer.length.toString(),
             },
-          });
-          resolve(response);
-        } catch (err) {
-          reject(err);
-        }
+          })
+        );
       });
 
       try {
-        const pageHeight = doc.page.height;
-        const pageWidth = doc.page.width;
-        const bottomMargin = 20;
+        // Convert mm positions to points (1mm = 2.834645669 points, but PDFKit uses default unit)
+        const mmToPoints = (mm: number) => mm;
 
-        // Title
-        doc.fontSize(22).font('Helvetica-Bold').text('CENTRAL SCHOOL OF COMMERCE', { align: 'center' });
-        doc.moveDown(0.2);
-        doc.fontSize(14).font('Helvetica').text('Official Typing Examination Statement of Marks', { align: 'center' });
-        doc.moveDown(0.5);
-        doc.moveTo(20, doc.y).lineTo(doc.page.width - 20, doc.y).stroke();
-        doc.moveDown(0.5);
+        // 🏷️ 1. Institute Branding Header
+        doc.fontSize(22).font('Helvetica-Bold').fillColor(0, 0, 0);
+        doc.text('CENTRAL SCHOOL OF COMMERCE', mmToPoints(pageWidth / 2), mmToPoints(55), { align: 'center' });
 
-        // Student & Exam Info
-        doc.fontSize(12).font('Helvetica');
-        doc.text(`Student Name: ${studentName}`, 20);
-        doc.text(`Student ID: ${studentEmail}`, 20);
-        doc.text(`Language: ${language.toUpperCase()}`, 20);
-        doc.text(`Exam Level: ${level.toUpperCase()}`, 20);
-        doc.text(`Date & Time: ${timestamp}`, 20);
-        doc.moveDown(0.5);
+        doc.fontSize(14).font('Helvetica');
+        doc.text('Official Typing Examination Statement of Marks', mmToPoints(pageWidth / 2), mmToPoints(65), { align: 'center' });
 
-        // Table Metrics
-        doc.fontSize(11).font('Helvetica-Bold');
-        doc.rect(20, doc.y, doc.page.width - 40, 15).fillAndStroke('#f5f5f5', '#000');
-        doc.fill('#000');
-        const metricsY = doc.y + 5;
-        doc.text('Examination Parameter', 25, metricsY);
-        doc.text('Obtained Metric', doc.page.width - 65, metricsY, { width: 60, align: 'right' });
-        
-        doc.moveDown(0.8);
+        doc.lineWidth(0.5).strokeColor(0, 0, 0);
+        doc.moveTo(mmToPoints(20), mmToPoints(72)).lineTo(mmToPoints(pageWidth - 20), mmToPoints(72)).stroke();
+
+        // 👤 2. Student & Exam Info
+        doc.fontSize(12).font('Helvetica').fillColor(0, 0, 0);
+        doc.text(`Student Name: ${studentName}`, mmToPoints(20), mmToPoints(83));
+        doc.text(`Student ID: ${studentEmail}`, mmToPoints(20), mmToPoints(91));
+        doc.text(`Language: ${language.toUpperCase()}`, mmToPoints(20), mmToPoints(99));
+        doc.text(`Exam Level: ${level.toUpperCase()}`, mmToPoints(20), mmToPoints(107));
+        doc.text(`Date & Time: ${timestamp}`, mmToPoints(pageWidth - 20), mmToPoints(83), { align: 'right' });
+
+        // 📊 3. Table Metrics
+        doc.fillColor(245, 245, 245);
+        doc.rect(mmToPoints(20), mmToPoints(115), mmToPoints(pageWidth - 40), mmToPoints(10)).fill();
+        doc.fillColor(0, 0, 0).font('Helvetica-Bold').fontSize(11);
+        doc.text('Examination Parameter', mmToPoints(25), mmToPoints(121));
+        doc.text('Obtained Metric', mmToPoints(pageWidth - 25), mmToPoints(121), { align: 'right' });
+
+        doc.font('Helvetica').fontSize(11);
+        doc.text('Gross Speed', mmToPoints(25), mmToPoints(133));
+        doc.text(`${wpm} WPM`, mmToPoints(pageWidth - 25), mmToPoints(133), { align: 'right' });
+        doc.moveTo(mmToPoints(20), mmToPoints(137)).lineTo(mmToPoints(pageWidth - 20), mmToPoints(137)).stroke();
+
+        doc.text('Total Strokes Keyed', mmToPoints(25), mmToPoints(145));
+        doc.text(`${strokes}`, mmToPoints(pageWidth - 25), mmToPoints(145), { align: 'right' });
+        doc.moveTo(mmToPoints(20), mmToPoints(149)).lineTo(mmToPoints(pageWidth - 20), mmToPoints(149)).stroke();
+
+        doc.text('Word Mistakes Committed', mmToPoints(25), mmToPoints(157));
+        doc.text(`${mistakes}`, mmToPoints(pageWidth - 25), mmToPoints(157), { align: 'right' });
+        doc.moveTo(mmToPoints(20), mmToPoints(161)).lineTo(mmToPoints(pageWidth - 20), mmToPoints(161)).stroke();
+
+        doc.text('Grade Accuracy Ratio', mmToPoints(25), mmToPoints(169));
+        doc.text(`${accuracy}%`, mmToPoints(pageWidth - 25), mmToPoints(169), { align: 'right' });
+        doc.moveTo(mmToPoints(20), mmToPoints(173)).lineTo(mmToPoints(pageWidth - 20), mmToPoints(173)).stroke();
+
+        doc.font('Helvetica-Bold').fontSize(11);
+        doc.fillColor(245, 245, 245);
+        doc.rect(mmToPoints(20), mmToPoints(180), mmToPoints(pageWidth - 40), mmToPoints(12)).fill();
+        doc.fillColor(0, 0, 0);
+        doc.text('NET AGGREGATE MARKS', mmToPoints(25), mmToPoints(188));
+        doc.text(`${marks} / 100`, mmToPoints(pageWidth - 25), mmToPoints(188), { align: 'right' });
+
+        // 🔴 🔍 4. HIGHLIGHT WRONG + SKIPPED WORDS EVALUATION
+        doc.fontSize(14).font('Helvetica').text('Individual Word Mistake Analysis Log', mmToPoints(20), mmToPoints(208));
         doc.fontSize(11).font('Helvetica');
-        
-        const metricsData: [string, string][] = [
-          ['Gross Speed', `${wpm} WPM`],
-          ['Total Strokes Keyed', `${strokes}`],
-          ['Word Mistakes Committed', `${mistakes}`],
-          ['Grade Accuracy Ratio', `${accuracy}%`],
-        ];
-
-        metricsData.forEach(([label, value]) => {
-          doc.text(label, 25);
-          doc.text(value as string, doc.page.width - 65, doc.y - 15, { width: 60, align: 'right' });
-          doc.moveDown(0.4);
-          doc.moveTo(20, doc.y).lineTo(doc.page.width - 20, doc.y).stroke();
-          doc.moveDown(0.3);
-        });
-
-        // Final Marks
-        doc.fontSize(12).font('Helvetica-Bold');
-        doc.rect(20, doc.y, doc.page.width - 40, 15).fillAndStroke('#f5f5f5', '#000');
-        doc.fill('#000');
-        const marksY = doc.y + 5;
-        doc.text('NET AGGREGATE MARKS', 25, marksY);
-        doc.text(`${marks} / 100`, doc.page.width - 65, marksY, { width: 60, align: 'right' });
-        
-        doc.moveDown(1.2);
-        doc.fontSize(11).font('Helvetica');
-        
-        // Word Mistake Analysis Section
-        doc.fontSize(12).font('Helvetica-Bold').text('Individual Word Mistake Analysis Log', 20);
-        doc.moveDown(0.5);
-        doc.fontSize(10).font('Helvetica');
 
         const targetWords = passageText.trim().split(/\s+/).filter(Boolean);
         const typedWords = (typedText || '').trim().split(/\s+/).filter(Boolean);
 
         let startX = 20;
-        let startY = doc.y;
-        const marginY = 6;
-        const marginX = 3;
-        const maxWidth = pageWidth - 40;
+        let startY = 218;
+        const marginY = 8;
+        const spaceWidth = doc.widthOfString(' ');
 
-        // Helper to measure text width
-        const textWidth = (text: string): number => {
-          return doc.widthOfString(text);
-        };
+        targetWords.forEach((word: string) => {
+          const wordWidth = doc.widthOfString(word);
+          const index = targetWords.indexOf(word);
 
-        doc.fillColor('#000000');
-
-        targetWords.forEach((word: string, index: number) => {
-          const isTyped = index < typedWords.length;
-          const isWrong = isTyped && typedWords[index] !== word;
-          const isSkipped = !isTyped;
-
-          const wordTextWidth = textWidth(word);
-
-          // Check if we need to wrap to next line
-          if (startX + wordTextWidth + 10 > pageWidth - 20) {
+          if (startX + wordWidth > pageWidth - 20) {
             startX = 20;
             startY += marginY;
           }
 
-          // Check if we need a new page
-          if (startY > pageHeight - bottomMargin - 30) {
+          if (startY > pageHeight - bottomMargin) {
             doc.addPage();
-            startY = 40;
+            startY = 25;
             startX = 20;
           }
 
-          // Draw the word with appropriate styling
+          const isTyped = index < typedWords.length;
+          const isWrong = isTyped && typedWords[index] !== word;
+          const isSkipped = !isTyped;
+
           if (isWrong) {
-            // Red color for wrong words
-            doc.fillColor('#dc3232');
-            doc.font('Helvetica-Bold');
-            doc.text(typedWords[index], startX, startY);
-            // Add underline to wrong word
-            const underlineY = startY + 12;
-            doc.strokeColor('#dc3232').lineWidth(0.5);
-            doc.moveTo(startX, underlineY).lineTo(startX + doc.widthOfString(typedWords[index]), underlineY).stroke();
-            doc.strokeColor('#000000');
-            doc.fillColor('#000000');
+            doc.fillColor(220, 50, 50).font('Helvetica-Bold');
+            doc.text(typedWords[index], mmToPoints(startX), mmToPoints(startY));
+            doc.strokeColor(220, 50, 50).lineWidth(0.5);
+            doc.moveTo(mmToPoints(startX), mmToPoints(startY + 1)).lineTo(mmToPoints(startX + wordWidth), mmToPoints(startY + 1)).stroke();
+            doc.fillColor(0, 0, 0).font('Helvetica');
           } else if (isSkipped) {
-            // Gray italic for skipped words
-            doc.fillColor('#999999');
-            doc.font('Helvetica-Oblique');
-            doc.text(word, startX, startY);
-            doc.font('Helvetica');
-            doc.fillColor('#000000');
+            doc.fillColor(150, 150, 150).font('Helvetica-Oblique');
+            doc.text(word, mmToPoints(startX), mmToPoints(startY));
+            doc.fillColor(0, 0, 0).font('Helvetica');
           } else {
-            // Normal black for correct words
-            doc.fillColor('#000000');
-            doc.font('Helvetica');
-            doc.text(word, startX, startY);
+            doc.fillColor(0, 0, 0).font('Helvetica');
+            doc.text(word, mmToPoints(startX), mmToPoints(startY));
           }
 
-          startX += wordTextWidth + marginX + 4;
+          startX += wordWidth + spaceWidth + 2;
         });
 
-        doc.moveDown(2);
+        if (startY + 30 > pageHeight - bottomMargin) {
+          doc.addPage();
+          startY = 25;
+        }
 
-        // Verdict Section
-        doc.fontSize(12).font('Helvetica-Bold').text('Verdict', 20);
-        doc.fontSize(11).font('Helvetica-Bold');
-        const verdict = passed ? 'EXAMINATION PASSED ✓' : 'EXAMINATION UNSUCCESSFUL ✗';
-        const verdictColor = passed ? '#10b981' : '#ef4444';
-        doc.fillColor(verdictColor).text(verdict, 20);
-        doc.fillColor('#000000');
-        
-        // End document - this triggers 'end' event
+        const passedText = passed ? 'VERDICT: EXAMINATION PASSED' : 'VERDICT: EXAMINATION UNSUCCESSFUL';
+        doc.fontSize(14).font('Helvetica-Bold');
+        doc.text(passedText, mmToPoints(20), mmToPoints(startY + 20));
+
         doc.end();
       } catch (genError: any) {
-        console.error('PDF content generation error:', genError);
         reject(genError);
       }
     });
   } catch (error: any) {
-    console.error('PDF Route Error:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to generate PDF' },
       { status: 500 }
