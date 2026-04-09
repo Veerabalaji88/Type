@@ -57,22 +57,18 @@ export async function POST(request: NextRequest): Promise<Response> {
       });
 
       try {
-        const pageWidth = 210; // A4 width in mm
-        const pageHeight = 297; // A4 height in mm
-        const bottomMargin = 20;
-
         // Title
-        doc.fontSize(22).font('Helvetica-Bold').fillColor(0, 0, 0);
+        doc.fontSize(22).font('Helvetica-Bold').fillColor('#000000');
         doc.text('CENTRAL SCHOOL OF COMMERCE', pageWidth / 2, 30, { align: 'center' });
 
         doc.fontSize(14).font('Helvetica');
         doc.text('Official Typing Examination Statement of Marks', pageWidth / 2, 42, { align: 'center' });
 
-        doc.lineWidth(0.5).strokeColor(0, 0, 0);
+        doc.lineWidth(0.5).strokeColor('#000000');
         doc.moveTo(20, 50).lineTo(pageWidth - 20, 50).stroke();
 
         // Student & Exam Info
-        doc.fontSize(12).font('Helvetica').fillColor(0, 0, 0);
+        doc.fontSize(12).font('Helvetica').fillColor('#000000');
         doc.text(`Student Name: ${studentName}`, 20, 60);
         doc.text(`Student ID: ${studentEmail}`, 20, 68);
         doc.text(`Language: ${language.toUpperCase()}`, 20, 76);
@@ -80,9 +76,9 @@ export async function POST(request: NextRequest): Promise<Response> {
         doc.text(`Date & Time: ${timestamp}`, pageWidth - 20, 60, { align: 'right' });
 
         // Table Metrics Header
-        doc.fillColor(245, 245, 245);
+        doc.fillColor('#f5f5f5');
         doc.rect(20, 93, pageWidth - 40, 8).fill();
-        doc.fillColor(0, 0, 0).font('Helvetica-Bold').fontSize(11);
+        doc.fillColor('#000000').font('Helvetica-Bold').fontSize(11);
         doc.text('Examination Parameter', 25, 96);
         doc.text('Obtained Metric', pageWidth - 25, 96, { align: 'right' });
 
@@ -106,9 +102,9 @@ export async function POST(request: NextRequest): Promise<Response> {
 
         // NET AGGREGATE MARKS
         doc.font('Helvetica-Bold').fontSize(11);
-        doc.fillColor(245, 245, 245);
+        doc.fillColor('#f5f5f5');
         doc.rect(20, 155, pageWidth - 40, 10).fill();
-        doc.fillColor(0, 0, 0);
+        doc.fillColor('#000000');
         doc.text('NET AGGREGATE MARKS', 25, 160);
         doc.text(`${marks} / 100`, pageWidth - 25, 160, { align: 'right' });
 
@@ -147,18 +143,18 @@ export async function POST(request: NextRequest): Promise<Response> {
 
           // Set styling based on word status
           if (isWrong) {
-            doc.fillColor(220, 50, 50).font('Helvetica-Bold');
+            doc.fillColor('#dc3232').font('Helvetica-Bold');
             doc.text(typedWords[index], currentX, currentY);
             // Add underline
-            doc.lineWidth(0.5).strokeColor(220, 50, 50);
+            doc.lineWidth(0.5).strokeColor('#dc3232');
             doc.moveTo(currentX, currentY + 2).lineTo(currentX + doc.widthOfString(typedWords[index]), currentY + 2).stroke();
-            doc.fillColor(0, 0, 0).font('Helvetica');
+            doc.fillColor('#000000').font('Helvetica');
           } else if (isSkipped) {
-            doc.fillColor(150, 150, 150).font('Helvetica-Oblique');
+            doc.fillColor('#999999').font('Helvetica-Oblique');
             doc.text(word, currentX, currentY);
-            doc.fillColor(0, 0, 0).font('Helvetica');
+            doc.fillColor('#000000').font('Helvetica');
           } else {
-            doc.fillColor(0, 0, 0).font('Helvetica');
+            doc.fillColor('#000000').font('Helvetica');
             doc.text(word, currentX, currentY);
           }
 
@@ -173,7 +169,7 @@ export async function POST(request: NextRequest): Promise<Response> {
         }
 
         const verdictText = passed ? 'VERDICT: EXAMINATION PASSED' : 'VERDICT: EXAMINATION UNSUCCESSFUL';
-        doc.fontSize(14).font('Helvetica-Bold').fillColor(0, 0, 0);
+        doc.fontSize(14).font('Helvetica-Bold').fillColor('#000000');
         doc.text(verdictText, 20, currentY);
 
         doc.end();
