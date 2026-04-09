@@ -36,6 +36,7 @@ export default function TypingTest() {
 
   // ⚙️ Toggles & Settings
   const [backspaceEnabled, setBackspaceEnabled] = useState(true); // Default enabled
+  const [highlightEnabled, setHighlightEnabled] = useState(true); // Default enabled
 
   // 🛡️ Track submit locks
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -566,6 +567,18 @@ export default function TypingTest() {
               >
                 {backspaceEnabled ? 'ENABLED' : 'DISABLED'}
               </button>
+
+              <span className="text-xs text-zinc-500 dark:text-slate-300 font-medium ml-4">Highlight:</span>
+              <button
+                onClick={() => setHighlightEnabled(!highlightEnabled)}
+                disabled={testStarted && !testComplete}
+                className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all duration-300 ${highlightEnabled
+                    ? 'bg-indigo-100 dark:bg-indigo-500/20 border border-indigo-200 dark:border-indigo-500/50 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                    : 'bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 text-zinc-400 dark:text-slate-400 hover:bg-zinc-200 dark:hover:bg-white/10'
+                  }`}
+              >
+                {highlightEnabled ? 'ENABLED' : 'DISABLED'}
+              </button>
             </div>
 
             <div className="flex items-center gap-4">
@@ -613,7 +626,10 @@ export default function TypingTest() {
                   let wordClass = "text-zinc-500 dark:text-slate-400";
                   const isCurrent = i === (userInput.endsWith(' ') ? typedWordsArray.length : typedWordsArray.length - 1);
 
-                  if (i < (userInput.endsWith(' ') ? typedWordsArray.length : typedWordsArray.length - 1)) {
+                  if (!highlightEnabled) {
+                    // When highlight is disabled, show all words in neutral color
+                    wordClass = "text-zinc-600 dark:text-slate-300";
+                  } else if (i < (userInput.endsWith(' ') ? typedWordsArray.length : typedWordsArray.length - 1)) {
                     wordClass = typedWordsArray[i] === word
                       ? "text-emerald-600 dark:text-emerald-400 font-bold"
                       : "text-red-500 dark:text-red-400 font-bold underline decoration-wavy";
