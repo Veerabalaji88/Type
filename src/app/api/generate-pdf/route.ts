@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import PDFDocument from 'pdfkit';
+import { Writable } from 'stream';
 
 export async function POST(request: NextRequest): Promise<Response> {
   try {
@@ -15,33 +16,56 @@ export async function POST(request: NextRequest): Promise<Response> {
       accuracy,
       marks,
       passed,
-      deductionPerMistake,
       passageText,
-      typedText,
-      correctWords,
       timestamp,
     } = body;
 
+    // Create PDF in a stream-based approach
+    const stream = new Writable({
+      write(chunk: Buffer, encoding, callback) {
+        callback();
+      }
+    });
+
+    const buffers: Buffer[] = [];
+
     return new Promise<Response>((resolve, reject) => {
+      // Create a PDF document
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 20,
+      });
+
+      // Collect data chunks
+      doc.on('data', (chunk: Buffer) => {
+        buffers.push(chunk);
+      });
+
+      // Handle errors
+      doc.on('error', (err: any) => {
+        console.error('PDF Document Error:', err);
+        reject(err);
+      });
+
+      // Handle finish event (when all data has been written)
+      doc.on('end', () => {
+        try {
+          const pdfBuffer = Buffer.concat(buffers);
+          const response = new NextResponse(pdfBuffer, {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/pdf',
+              'Content-Disposition': `attachment; filename="CSCTypingTest-${language}-${level}.pdf"`,
+              'Content-Length': pdfBuffer.length.toString(),
+            },
+          });
+          resolve(response);
+        } catch (err) {
+          reject(err);
+        }
+      });
+
       try {
-        // Create a PDF document
-        const doc = new PDFDocument({
-          size: 'A4',
-          margin: 20,
-        });
-
-        // Set up response headers for file download
-        const chunks: Buffer[] = [];
-        
-        doc.on('data', (chunk: Buffer) => {
-          chunks.push(chunk);
-        });
-
-        doc.on('error', (err: any) => {
-          console.error('PDF Document Error:', err);
-          reject(new Error(`PDF generation error: ${err.message}`));
-        });
-
         // Title
         doc.fontSize(22).font('Helvetica-Bold').text('CENTRAL SCHOOL OF COMMERCE', { align: 'center' });
         doc.moveDown(0.2);
@@ -79,7 +103,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
         metricsData.forEach(([label, value]) => {
           doc.text(label, 25);
-          doc.text(value, doc.page.width - 65, doc.y - 15, { width: 60, align: 'right' });
+          doc.text(value as string, doc.page.width - 65, doc.y - 15, { width: 60, align: 'right' });
           doc.moveDown(0.4);
           doc.moveTo(20, doc.y).lineTo(doc.page.width - 20, doc.y).stroke();
           doc.moveDown(0.3);
@@ -113,30 +137,18 @@ export async function POST(request: NextRequest): Promise<Response> {
         const verdictColor = passed ? '#10b981' : '#ef4444';
         doc.fillColor(verdictColor).text(verdict, 20);
         
-        // Finish document
-        doc.on('finish', () => {
-          const pdfBuffer = Buffer.concat(chunks);
-          resolve(
-            new NextResponse(pdfBuffer, {
-              headers: {
-                'Content-Type': 'application/pdf',
-                'Content-Disposition': `attachment; filename="CSCTypingTest-${language}-${level}.pdf"`,
-              },
-            })
-          );
-        });
-        
+        // End document - this triggers 'end' event
         doc.end();
-      } catch (innerError: any) {
-        console.error('PDF Generation Inner Error:', innerError);
-        reject(new Error(`PDF generation failed: ${innerError.message}`));
+      } catch (genError: any) {
+        console.error('PDF content generation error:', genError);
+        reject(genError);
       }
-    }).catch((error) => {
-      console.error('PDF Promise Error:', error);
-      return NextResponse.json({ error: error.message || 'Failed to generate PDF' }, { status: 500 }) as any;
     });
   } catch (error: any) {
-    console.error('PDF Generation Error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to generate PDF' }, { status: 500 });
+    console.error('PDF Route Error:', error);
+    return NextResponse.json(
+      { error: error.message || 'Failed to generate PDF' },
+      { status: 500 }
+    );
   }
 }
