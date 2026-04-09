@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import PDFDocument from 'pdfkit';
+import fs from 'fs';
+import path from 'path';
 
 export async function POST(request: NextRequest): Promise<Response> {
   try {
@@ -32,9 +34,11 @@ export async function POST(request: NextRequest): Promise<Response> {
         buffers.push(chunk);
       });
 
-      const pageWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
+      const pageWidth = 210;
+      const pageHeight = 297;
       const bottomMargin = 20;
+      const leftMargin = 20;
+      const rightMargin = pageWidth - 20;
 
       doc.on('error', (err: any) => {
         reject(err);
@@ -55,75 +59,85 @@ export async function POST(request: NextRequest): Promise<Response> {
       });
 
       try {
-        // Header - match jsPDF positioning
+        // Logo and Header
+        try {
+          const logoPath = path.join(process.cwd(), 'public', 'lakshmi-logo.png');
+          if (fs.existsSync(logoPath)) {
+            doc.image(logoPath, (pageWidth / 2) - 12, 12, { width: 24, height: 24 });
+          }
+        } catch (e) {
+          // Logo not found, continue without it
+        }
+
+        // Title
         doc.fontSize(22).font('Helvetica-Bold').fillColor('#000000');
-        doc.text('CENTRAL SCHOOL OF COMMERCE', pageWidth / 2, 30, { align: 'center' });
+        doc.text('LAKSHMI TECHNICAL INSTITUTE', pageWidth / 2, 42, { align: 'center' });
 
-        doc.fontSize(14).font('Helvetica');
-        doc.text('Official Typing Examination Statement of Marks', pageWidth / 2, 42, { align: 'center' });
+        // Subtitle
+        doc.fontSize(14).font('Helvetica').fillColor('#000000');
+        doc.text('Official Typing Examination Statement of Marks', pageWidth / 2, 55, { align: 'center' });
 
+        // Dividing line
         doc.lineWidth(0.5).strokeColor('#000000');
-        doc.moveTo(20, 50).lineTo(pageWidth - 20, 50).stroke();
+        doc.moveTo(leftMargin, 62).lineTo(rightMargin, 62).stroke();
 
-        // Student & Exam Info
+        // Student & Exam Info - Section
         doc.fontSize(12).font('Helvetica').fillColor('#000000');
-        doc.text(`Student Name: ${studentName}`, 20, 60);
-        doc.text(`Student ID: ${studentEmail}`, 20, 68);
-        doc.text(`Language: ${language.toUpperCase()}`, 20, 76);
-        doc.text(`Exam Level: ${level.toUpperCase()}`, 20, 84);
-        doc.text(`Date & Time: ${timestamp}`, pageWidth - 20, 60, { align: 'right', width: pageWidth - 40 });
+        doc.text(`Student Name: ${studentName}`, leftMargin, 73);
+        doc.text(`Student ID: ${studentEmail}`, leftMargin, 83);
+        doc.text(`Language: ${language.toUpperCase()}`, leftMargin, 93);
+        doc.text(`Exam Level: ${level.toUpperCase()}`, leftMargin, 103);
 
-        // Metrics Table - Header
-        doc.fillColor('#f5f5f5');
-        doc.rect(20, 93, pageWidth - 40, 10).fill();
-        doc.fillColor('#000000').font('Helvetica-Bold').fontSize(11);
-        doc.text('Examination Parameter', 25, 98);
-        doc.text('Obtained Metric', pageWidth - 25, 98, { align: 'right', width: 50 });
+        // Date and Time on the right, aligned with the top
+        doc.fontSize(12).font('Helvetica').fillColor('#000000');
+        doc.text(`Date & Time: ${timestamp}`, rightMargin, 73, { align: 'right' });
 
-        // Metrics Rows with clean styling
-        doc.font('Helvetica').fontSize(11);
-        
-        // Row 1: Gross Speed
-        doc.text('Gross Speed', 25, 107);
-        doc.text(`${wpm} WPM`, pageWidth - 25, 107, { align: 'right', width: 50 });
-        doc.moveTo(20, 111).lineTo(pageWidth - 20, 111).stroke();
-
-        // Row 2: Total Strokes Keyed
-        doc.text('Total Strokes Keyed', 25, 117);
-        doc.text(`${strokes}`, pageWidth - 25, 117, { align: 'right', width: 50 });
-        doc.moveTo(20, 121).lineTo(pageWidth - 20, 121).stroke();
-
-        // Row 3: Word Mistakes Committed
-        doc.text('Word Mistakes Committed', 25, 127);
-        doc.text(`${mistakes}`, pageWidth - 25, 127, { align: 'right', width: 50 });
-        doc.moveTo(20, 131).lineTo(pageWidth - 20, 131).stroke();
-
-        // Row 4: Grade Accuracy Ratio
-        doc.text('Grade Accuracy Ratio', 25, 137);
-        doc.text(`${accuracy}%`, pageWidth - 25, 137, { align: 'right', width: 50 });
-        doc.moveTo(20, 141).lineTo(pageWidth - 20, 141).stroke();
-
-        // NET AGGREGATE MARKS
-        doc.font('Helvetica-Bold').fontSize(11);
-        doc.fillColor('#f5f5f5');
-        doc.rect(20, 147, pageWidth - 40, 10).fill();
+        // Metrics Table Header
+        doc.fontSize(11).font('Helvetica-Bold').fillColor('#ffffff');
+        doc.fillColor('#e8e8e8');
+        doc.rect(leftMargin, 117, rightMargin - leftMargin, 10).fill();
         doc.fillColor('#000000');
-        doc.text('NET AGGREGATE MARKS', 25, 152);
-        doc.text(`${marks} / 100`, pageWidth - 25, 152, { align: 'right', width: 50 });
+        doc.text('Examination Parameter', leftMargin + 5, 122);
+        doc.text('Obtained Metric', rightMargin - 5, 122, { align: 'right' });
+
+        // Metrics Data
+        doc.fontSize(11).font('Helvetica').fillColor('#000000');
+
+        const metricsData: [string, string][] = [
+          ['Gross Speed', `${wpm} WPM`],
+          ['Total Strokes Keyed', `${strokes}`],
+          ['Word Mistakes Committed', `${mistakes}`],
+          ['Grade Accuracy Ratio', `${accuracy}%`],
+        ];
+
+        let yPosition = 133;
+        metricsData.forEach((metric: [string, string], index: number) => {
+          doc.text(metric[0], leftMargin + 5, yPosition);
+          doc.text(metric[1], rightMargin - 5, yPosition, { align: 'right' });
+          doc.moveTo(leftMargin, yPosition + 7).lineTo(rightMargin, yPosition + 7).stroke();
+          yPosition += 10;
+        });
+
+        // NET AGGREGATE MARKS - Highlighted Section
+        doc.fontSize(11).font('Helvetica-Bold').fillColor('#ffffff');
+        doc.fillColor('#e8e8e8');
+        doc.rect(leftMargin, yPosition, rightMargin - leftMargin, 12).fill();
+        doc.fillColor('#000000');
+        doc.text('NET AGGREGATE MARKS', leftMargin + 5, yPosition + 2);
+        doc.text(`${marks} / 100`, rightMargin - 5, yPosition + 2, { align: 'right' });
 
         // Individual Word Mistake Analysis Log
-        doc.fontSize(14).font('Helvetica').fillColor('#000000');
-        doc.text('Individual Word Mistake Analysis Log', 20, 167);
+        yPosition += 20;
+        doc.fontSize(14).font('Helvetica-Bold').fillColor('#000000');
+        doc.text('Individual Word Mistake Analysis Log', leftMargin, yPosition);
 
-        doc.fontSize(11).font('Helvetica');
-
+        // Parse words for analysis
         const targetWords = passageText.trim().split(/\s+/).filter(Boolean);
         const typedWords = (typedText || '').trim().split(/\s+/).filter(Boolean);
 
-        let currentX = 20;
-        let currentY = 180;
-        const marginY = 8;
-        const marginRight = pageWidth - 20;
+        let wordX = leftMargin;
+        let wordY = yPosition + 15;
+        const wordMarginY = 8;
 
         targetWords.forEach((word: string, index: number) => {
           const isTyped = index < typedWords.length;
@@ -132,52 +146,51 @@ export async function POST(request: NextRequest): Promise<Response> {
 
           const wordWidth = doc.widthOfString(word);
           const spaceWidth = doc.widthOfString(' ');
-          const totalWidth = wordWidth + spaceWidth;
 
-          // Wrap to next line if needed
-          if (currentX + wordWidth > marginRight) {
-            currentX = 20;
-            currentY += marginY;
+          // Line wrapping
+          if (wordX + wordWidth > rightMargin) {
+            wordX = leftMargin;
+            wordY += wordMarginY;
           }
 
-          // Add new page if needed
-          if (currentY > pageHeight - bottomMargin - 15) {
+          // Page break
+          if (wordY > pageHeight - bottomMargin - 15) {
             doc.addPage();
-            currentX = 20;
-            currentY = 30;
+            wordX = leftMargin;
+            wordY = 30;
           }
 
-          // Draw word with styling
+          // Draw word
+          doc.fontSize(11);
           if (isWrong) {
             doc.fillColor('#dc3232').font('Helvetica-Bold');
-            doc.text(typedWords[index], currentX, currentY);
-            // Underline
+            doc.text(typedWords[index], wordX, wordY);
+            // Draw underline
             doc.lineWidth(0.5).strokeColor('#dc3232');
-            doc.moveTo(currentX, currentY + 2).lineTo(currentX + doc.widthOfString(typedWords[index]), currentY + 2).stroke();
+            const underlineWidth = doc.widthOfString(typedWords[index]);
+            doc.moveTo(wordX, wordY + 3).lineTo(wordX + underlineWidth, wordY + 3).stroke();
             doc.strokeColor('#000000');
-            doc.fillColor('#000000').font('Helvetica');
           } else if (isSkipped) {
             doc.fillColor('#999999').font('Helvetica-Oblique');
-            doc.text(word, currentX, currentY);
-            doc.fillColor('#000000').font('Helvetica');
+            doc.text(word, wordX, wordY);
           } else {
             doc.fillColor('#000000').font('Helvetica');
-            doc.text(word, currentX, currentY);
+            doc.text(word, wordX, wordY);
           }
 
-          currentX += totalWidth;
+          wordX += wordWidth + spaceWidth;
         });
 
-        // Verdict
-        currentY += marginY;
-        if (currentY > pageHeight - bottomMargin - 15) {
+        // Verdict Section
+        wordY += wordMarginY + 5;
+        if (wordY > pageHeight - bottomMargin - 15) {
           doc.addPage();
-          currentY = 30;
+          wordY = 30;
         }
 
-        const verdictText = passed ? 'VERDICT: EXAMINATION PASSED' : 'VERDICT: EXAMINATION UNSUCCESSFUL';
-        doc.fontSize(14).font('Helvetica-Bold').fillColor('#000000');
-        doc.text(verdictText, 20, currentY);
+        const verdictText = passed ? 'VERDICT: EXAMINATION PASSED ✅' : 'VERDICT: EXAMINATION UNSUCCESSFUL ❌';
+        doc.fontSize(14).font('Helvetica-Bold').fillColor(passed ? '#059669' : '#dc2626');
+        doc.text(verdictText, leftMargin, wordY);
 
         doc.end();
       } catch (genError: any) {
