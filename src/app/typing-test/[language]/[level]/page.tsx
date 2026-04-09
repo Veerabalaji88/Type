@@ -621,7 +621,7 @@ export default function TypingTest() {
               ref={passageContainerRef}
               className="bg-zinc-50 dark:bg-black/30 border border-zinc-200 dark:border-white/5 p-6 rounded-xl h-72 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-300 dark:scrollbar-thumb-white/10 transition-colors duration-300"
             >
-              <div className={`text-zinc-600 dark:text-slate-300 text-lg leading-relaxed ${language === 'tamil' ? '' : 'font-mono'} flex flex-wrap gap-x-2 gap-y-1`}>
+              <div className={`text-zinc-600 dark:text-slate-300 text-lg leading-relaxed ${language === 'tamil' ? '' : 'font-mono'} flex flex-wrap gap-x-2 gap-y-1`} style={language === 'tamil' ? { fontFamily: "'Tamil99 Unicode', 'Tamil OldTypewriter Unicode', 'Noto Sans Tamil', system-ui, monospace" } : {}}>
                 {targetWordsArray.map((word, i) => {
                   let wordClass = "text-zinc-500 dark:text-slate-400";
                   const isCurrent = i === (userInput.endsWith(' ') ? typedWordsArray.length : typedWordsArray.length - 1);
@@ -669,6 +669,7 @@ export default function TypingTest() {
               onDrop={(e) => e.preventDefault()}
               onContextMenu={(e) => e.preventDefault()}
               className={`w-full h-72 p-4 bg-zinc-50 dark:bg-black/30 border border-zinc-200 dark:border-white/5 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none resize-none text-zinc-900 dark:text-white ${language === 'tamil' ? '' : 'font-mono'} text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300`}
+              style={language === 'tamil' ? { fontFamily: "'Tamil99 Unicode', 'Tamil OldTypewriter Unicode', 'Noto Sans Tamil', system-ui, monospace" } : {}}
               placeholder={testStarted ? 'Start typing here...' : 'Click "Start Test" to begin'}
             />
           </div>
