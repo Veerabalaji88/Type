@@ -17,6 +17,7 @@ export async function POST(request: NextRequest): Promise<Response> {
       marks,
       passed,
       passageText,
+      typedText,
       timestamp,
     } = body;
 
@@ -66,6 +67,10 @@ export async function POST(request: NextRequest): Promise<Response> {
       });
 
       try {
+        const pageHeight = doc.page.height;
+        const pageWidth = doc.page.width;
+        const bottomMargin = 20;
+
         // Title
         doc.fontSize(22).font('Helvetica-Bold').text('CENTRAL SCHOOL OF COMMERCE', { align: 'center' });
         doc.moveDown(0.2);
@@ -120,22 +125,85 @@ export async function POST(request: NextRequest): Promise<Response> {
         doc.moveDown(1.2);
         doc.fontSize(11).font('Helvetica');
         
-        // Passage Analysis
-        doc.fontSize(12).font('Helvetica-Bold').text('Original Passage', 20);
-        doc.fontSize(10).font('Helvetica');
-        
-        // Display text with automatic wrapping
-        doc.text(passageText, {
-          width: doc.page.width - 40,
-          align: 'left',
-        });
-        
+        // Word Mistake Analysis Section
+        doc.fontSize(12).font('Helvetica-Bold').text('Individual Word Mistake Analysis Log', 20);
         doc.moveDown(0.5);
-        doc.fontSize(11).font('Helvetica-Bold').text('Verdict', 20);
+        doc.fontSize(10).font('Helvetica');
+
+        const targetWords = passageText.trim().split(/\s+/).filter(Boolean);
+        const typedWords = (typedText || '').trim().split(/\s+/).filter(Boolean);
+
+        let startX = 20;
+        let startY = doc.y;
+        const marginY = 6;
+        const marginX = 3;
+        const maxWidth = pageWidth - 40;
+
+        // Helper to measure text width
+        const textWidth = (text: string): number => {
+          return doc.widthOfString(text, { font: 'Helvetica', size: 10 });
+        };
+
+        doc.fillColor('#000000');
+
+        targetWords.forEach((word, index) => {
+          const isTyped = index < typedWords.length;
+          const isWrong = isTyped && typedWords[index] !== word;
+          const isSkipped = !isTyped;
+
+          const wordTextWidth = textWidth(word);
+
+          // Check if we need to wrap to next line
+          if (startX + wordTextWidth + 10 > pageWidth - 20) {
+            startX = 20;
+            startY += marginY;
+          }
+
+          // Check if we need a new page
+          if (startY > pageHeight - bottomMargin - 30) {
+            doc.addPage();
+            startY = 40;
+            startX = 20;
+          }
+
+          // Draw the word with appropriate styling
+          if (isWrong) {
+            // Red color for wrong words
+            doc.fillColor('#dc3232');
+            doc.font('Helvetica-Bold');
+            doc.text(typedWords[index], startX, startY, { lineGap: 0 });
+            // Add underline to wrong word
+            const underlineY = startY + 12;
+            doc.strokeColor('#dc3232').lineWidth(0.5);
+            doc.moveTo(startX, underlineY).lineTo(startX + doc.widthOfString(typedWords[index]), underlineY).stroke();
+            doc.strokeColor('#000000');
+            doc.fillColor('#000000');
+          } else if (isSkipped) {
+            // Gray italic for skipped words
+            doc.fillColor('#999999');
+            doc.font('Helvetica-Oblique');
+            doc.text(word, startX, startY, { lineGap: 0 });
+            doc.font('Helvetica');
+            doc.fillColor('#000000');
+          } else {
+            // Normal black for correct words
+            doc.fillColor('#000000');
+            doc.font('Helvetica');
+            doc.text(word, startX, startY, { lineGap: 0 });
+          }
+
+          startX += wordTextWidth + marginX + 4;
+        });
+
+        doc.moveDown(2);
+
+        // Verdict Section
+        doc.fontSize(12).font('Helvetica-Bold').text('Verdict', 20);
         doc.fontSize(11).font('Helvetica-Bold');
         const verdict = passed ? 'EXAMINATION PASSED ✓' : 'EXAMINATION UNSUCCESSFUL ✗';
         const verdictColor = passed ? '#10b981' : '#ef4444';
         doc.fillColor(verdictColor).text(verdict, 20);
+        doc.fillColor('#000000');
         
         // End document - this triggers 'end' event
         doc.end();
