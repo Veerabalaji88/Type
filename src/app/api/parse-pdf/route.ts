@@ -34,8 +34,8 @@ export async function POST(request: Request) {
 
     // 🛰️ Initialize Admin Supabase to bypass RLS policies for admin uploads
     const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY! // 👈 Ensure this secret is in your .env
+      process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder_key'
     );
 
     // Insert into 'passages' table
