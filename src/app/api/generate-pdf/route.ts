@@ -106,7 +106,7 @@ export async function POST(request: NextRequest): Promise<Response> {
           ['Grade Accuracy Ratio', `${accuracy}%`],
         ];
 
-        metricsData.forEach(([label, value]) => {
+        metricsData.forEach(([label, value]: [string, string]) => {
           doc.text(label, 25);
           doc.text(value as string, doc.page.width - 65, doc.y - 15, { width: 60, align: 'right' });
           doc.moveDown(0.4);
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest): Promise<Response> {
 
         doc.fillColor('#000000');
 
-        targetWords.forEach((word, index) => {
+        targetWords.forEach((word: string, index: number) => {
           const isTyped = index < typedWords.length;
           const isWrong = isTyped && typedWords[index] !== word;
           const isSkipped = !isTyped;
