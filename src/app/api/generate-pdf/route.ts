@@ -91,10 +91,9 @@ export async function POST(request: NextRequest): Promise<Response> {
     doc.fontSize(10).font('Helvetica');
     
     // Display Tamil text with automatic wrapping
-    doc.text(passageText, 25, {
+    doc.text(passageText, {
       width: doc.page.width - 50,
       align: 'left',
-      lineBreak: true,
     });
     
     doc.moveDown(0.5);
