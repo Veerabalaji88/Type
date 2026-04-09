@@ -90,15 +90,12 @@ export async function POST(request: NextRequest): Promise<Response> {
     doc.fontSize(12).font('Helvetica-Bold').text('Original Passage (Tamil)', 20);
     doc.fontSize(10).font('Helvetica');
     
-    // Wrap Tamil text for display
-    const passageLines = doc.splitText(passageText, doc.page.width - 40);
-    passageLines.slice(0, 5).forEach((line: string) => {
-      doc.text(line, 25, { width: doc.page.width - 50 });
+    // Display Tamil text with automatic wrapping
+    doc.text(passageText, 25, {
+      width: doc.page.width - 50,
+      align: 'left',
+      lineBreak: true,
     });
-    
-    if (passageLines.length > 5) {
-      doc.text('...', 25);
-    }
     
     doc.moveDown(0.5);
     doc.fontSize(11).font('Helvetica-Bold').text('Verdict', 20);
