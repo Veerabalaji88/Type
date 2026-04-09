@@ -49,15 +49,12 @@ export default function SignUp() {
         // 2️⃣ Step Two: Manually save data to profiles table
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert([
-            {
-              id: authData.user.id,
-              full_name: formData.fullName,
-              email: formData.email, 
-              mobile_number: formData.mobileNumber,
-              date_of_birth: formData.dateOfBirth || null,
-            },
-          ]);
+          .update({
+            full_name: formData.fullName,
+            mobile_number: formData.mobileNumber,
+            date_of_birth: formData.dateOfBirth || null,
+          })
+          .eq('id', authData.user.id);
 
         if (profileError) {
           console.error('❌ Profile Insert Error:', profileError);
