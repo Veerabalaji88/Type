@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import PDFDocument from 'pdfkit';
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<Response> {
   try {
     const body = await request.json();
     const {
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     // Set up response headers for file download
     const chunks: Buffer[] = [];
-    doc.on('data', (chunk) => chunks.push(chunk));
+    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
 
     // Title
     doc.fontSize(22).font('Helvetica-Bold').text('CENTRAL SCHOOL OF COMMERCE', { align: 'center' });
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     
     // Wrap Tamil text for display
     const passageLines = doc.splitText(passageText, doc.page.width - 40);
-    passageLines.slice(0, 5).forEach((line) => {
+    passageLines.slice(0, 5).forEach((line: string) => {
       doc.text(line, 25, { width: doc.page.width - 50 });
     });
     
@@ -107,10 +107,7 @@ export async function POST(request: NextRequest) {
     const verdictColor = passed ? '#10b981' : '#ef4444';
     doc.fillColor(verdictColor).text(verdict, 20);
     
-    // End document
-    doc.end();
-
-    // Wait for document to finish
+    // End document and collect data
     return new Promise((resolve) => {
       doc.on('finish', () => {
         const pdfBuffer = Buffer.concat(chunks);
@@ -123,6 +120,8 @@ export async function POST(request: NextRequest) {
           })
         );
       });
+      
+      doc.end();
     });
   } catch (error: any) {
     console.error('PDF Generation Error:', error);
